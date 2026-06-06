@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   MagnifyingGlassIcon, 
@@ -17,9 +17,9 @@ import {
 import { StarIcon, UserIcon as UserIconSolid } from '@heroicons/react/24/solid';
 import { Great_Vibes } from 'next/font/google';
 
-import AuthModal from '@/components/AuthModal';
-// 1. IMPORT THE NEW PROFILE DRAWER
-import ProfileDrawer from '@/components/ProfileDrawer'; 
+import AuthModal from '@/components/AuthModal'; 
+import ProfileDrawer from '@/components/ProfileDrawer';
+import { supabase } from '@/lib/supabase';
 
 const greatVibes = Great_Vibes({ 
   weight: '400',
@@ -38,23 +38,39 @@ interface CartItem {
 }
 
 export default function ProductPage() {
+  // --- AUTHENTICATION STATE ---
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
+  // --- PRODUCT SELECTION STATE ---
   const [selectedColor, setSelectedColor] = useState<'Pink' | 'Yellow'>('Pink');
   const [selectedSize, setSelectedSize] = useState<string>('S');
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'Description' | 'Sizing' | 'Shipping' | 'Returns'>('Description');
 
+  // --- UI & CART STATE ---
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
-  // 2. ADD STATE FOR THE PROFILE DRAWER
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false); 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const currentImage = selectedColor === 'Pink' ? '/images/emmapink.jpg' : '/images/emmayellow.jpg';
 
+  // --- SUPABASE SESSION LISTENER ---
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // --- HANDLERS ---
   const handleQuantity = (type: 'increase' | 'decrease') => {
     if (type === 'decrease' && quantity > 1) setQuantity(quantity - 1);
     if (type === 'increase') setQuantity(quantity + 1);
@@ -68,6 +84,7 @@ export default function ProductPage() {
     }
 
     const newItemId = `emma-${selectedColor.toLowerCase()}-${selectedSize.toLowerCase()}`;
+    
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === newItemId);
       if (existingItem) {
@@ -76,7 +93,13 @@ export default function ProductPage() {
         );
       } else {
         return [...prevItems, {
-          id: newItemId, name: 'Emma Top', price: 900, color: selectedColor, size: selectedSize, quantity: quantity, image: currentImage
+          id: newItemId, 
+          name: 'Emma Top', 
+          price: 900, 
+          color: selectedColor, 
+          size: selectedSize, 
+          quantity: quantity, 
+          image: currentImage
         }];
       }
     });
@@ -95,13 +118,16 @@ export default function ProductPage() {
     }));
   };
 
-  const removeFromCart = (id: string) => setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+  const removeFromCart = (id: string) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+  };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
     setCartItems([]); 
     setIsCartOpen(false);
-    setIsProfileOpen(false); // Close profile drawer on logout
+    setIsProfileOpen(false); 
   };
 
   const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -110,7 +136,7 @@ export default function ProductPage() {
   return (
     <div className="w-full min-h-screen bg-white text-gray-900 font-sans flex flex-col">
       
-      {/* HEADER */}
+      {/* --- HEADER --- */}
       <header className="sticky top-0 z-30 bg-white px-6 md:px-12 py-4 flex items-center justify-between border-b border-gray-100">
         <div className="hidden md:flex space-x-6 text-sm font-medium">
           <a href="#" className="hover:text-gray-500">Shop ▾</a>
@@ -127,7 +153,6 @@ export default function ProductPage() {
         <div className="flex items-center space-x-4 md:space-x-6">
           <MagnifyingGlassIcon className="w-5 h-5 cursor-pointer hover:text-gray-500" />
           
-          {/* 3. UPDATE THE USER ICON CLICK HANDLER */}
           {isLoggedIn ? (
             <button onClick={() => setIsProfileOpen(true)} title="My Profile" className="focus:outline-none hidden md:block">
               <UserIconSolid className="w-5 h-5 text-green-700 cursor-pointer" />
@@ -141,8 +166,12 @@ export default function ProductPage() {
           <button 
             className="relative focus:outline-none" 
             onClick={() => {
-              if (!isLoggedIn) { setAuthMode('login'); setIsAuthModalOpen(true); } 
-              else { setIsCartOpen(true); }
+              if (!isLoggedIn) { 
+                setAuthMode('login'); 
+                setIsAuthModalOpen(true); 
+              } else { 
+                setIsCartOpen(true); 
+              }
             }}
           >
             <ShoppingBagIcon className="w-5 h-5 cursor-pointer hover:text-gray-500" />
@@ -159,11 +188,12 @@ export default function ProductPage() {
         </div>
       </header>
 
-      {/* BREADCRUMBS */}
+      {/* --- BREADCRUMBS --- */}
       <div className="px-6 md:px-12 py-4 text-xs text-gray-500 uppercase tracking-wider">
         <Link href="/" className="hover:underline">Home</Link> {'>'} Tops {'>'} Emma Top
       </div>
 
+      {/* --- MAIN CONTENT --- */}
       <main className="flex-grow px-6 md:px-12 pb-12 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row gap-10 lg:gap-16 items-start">
           
@@ -172,7 +202,10 @@ export default function ProductPage() {
             <button className="absolute left-4 p-2 bg-white/50 rounded-full hover:bg-white transition-colors z-10 hidden group-hover:block">
               <ChevronLeftIcon className="w-5 h-5" />
             </button>
-            <div className="absolute inset-0 bg-cover bg-center transition-all duration-300" style={{ backgroundImage: `url('${currentImage}')` }} />
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-all duration-300" 
+              style={{ backgroundImage: `url('${currentImage}')` }} 
+            />
             <button className="absolute right-4 p-2 bg-white/50 rounded-full hover:bg-white transition-colors z-10 hidden group-hover:block">
               <ChevronRightIcon className="w-5 h-5" />
             </button>
@@ -199,28 +232,47 @@ export default function ProductPage() {
             <div className="mb-6">
               <p className="text-sm mb-3">Select Color: <span className="font-medium">{selectedColor}</span></p>
               <div className="flex space-x-3">
-                <button onClick={() => setSelectedColor('Pink')} className={`w-14 h-14 border-2 p-0.5 ${selectedColor === 'Pink' ? 'border-black' : 'border-transparent'}`}>
+                <button 
+                  onClick={() => setSelectedColor('Pink')} 
+                  className={`w-14 h-14 border-2 p-0.5 ${selectedColor === 'Pink' ? 'border-black' : 'border-transparent'}`}
+                >
                   <div className="w-full h-full bg-[#FFD1DC] bg-cover bg-center" style={{ backgroundImage: `url('/images/emmapink.jpg')` }} />
                 </button>
-                <button onClick={() => setSelectedColor('Yellow')} className={`w-14 h-14 border-2 p-0.5 ${selectedColor === 'Yellow' ? 'border-black' : 'border-transparent'}`}>
+                <button 
+                  onClick={() => setSelectedColor('Yellow')} 
+                  className={`w-14 h-14 border-2 p-0.5 ${selectedColor === 'Yellow' ? 'border-black' : 'border-transparent'}`}
+                >
                   <div className="w-full h-full bg-[#FFFACD] bg-cover bg-center" style={{ backgroundImage: `url('/images/emmayellow.jpg')` }} />
                 </button>
               </div>
             </div>
 
-            {/* SIZE SELECTION */}
+            {/* SIZE SELECTION & COMPACT CHART */}
             <div className="mb-6">
-              <p className="text-sm mb-3">Size: <span className="font-medium">{selectedSize}</span></p>
+              <div className="flex justify-between text-sm mb-3">
+                <p>Size: <span className="font-medium">{selectedSize}</span></p>
+              </div>
               <div className="flex space-x-2 mb-4">
                 {['S', 'M', 'L', 'XL'].map((s) => (
-                  <button key={s} onClick={() => setSelectedSize(s)} className={`w-12 h-10 border text-sm font-medium transition-colors ${selectedSize === s ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300 hover:border-black'}`}>
+                  <button 
+                    key={s} 
+                    onClick={() => setSelectedSize(s)} 
+                    className={`w-12 h-10 border text-sm font-medium transition-colors ${selectedSize === s ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300 hover:border-black'}`}
+                  >
                     {s}
                   </button>
                 ))}
               </div>
+              
               <div className="bg-gray-50 p-3 rounded-sm border border-gray-100 max-w-sm">
                 <table className="w-full text-[10px] text-gray-600 text-center">
-                  <thead><tr className="border-b border-gray-200"><th className="pb-1 text-left">Size</th><th className="pb-1">Bust (in)</th><th className="pb-1">Waist (in)</th></tr></thead>
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="font-medium pb-1 text-left">Size</th>
+                      <th className="font-medium pb-1">Bust (in)</th>
+                      <th className="font-medium pb-1">Waist (in)</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     <tr><td className="py-1 text-left font-medium text-gray-800">S</td><td className="py-1">32 - 34</td><td className="py-1">24 - 26</td></tr>
                     <tr><td className="py-1 text-left font-medium text-gray-800">M</td><td className="py-1">34 - 36</td><td className="py-1">26 - 28</td></tr>
@@ -246,22 +298,74 @@ export default function ProductPage() {
               Limited pieces
             </div>
 
-            <button onClick={handleAddToCart} className="w-full bg-[#1A1A1A] text-white py-4 text-sm font-bold tracking-widest hover:bg-black transition-colors mb-8">
+            {/* ADD TO CART BUTTON (Protected) */}
+            <button 
+              onClick={handleAddToCart} 
+              className="w-full bg-[#1A1A1A] text-white py-4 text-sm font-bold tracking-widest hover:bg-black transition-colors mb-8"
+            >
               {isLoggedIn ? 'ADD TO CART' : 'LOG IN TO ADD TO CART'}
             </button>
 
-            {/* ACCORDION / TABS */}
+            {/* FULLY RESTORED TABS SECTION */}
             <div className="border-t border-gray-200 pt-6">
               <div className="flex space-x-6 border-b border-gray-200 mb-4 overflow-x-auto">
                 {['Description', 'Sizing', 'Shipping', 'Returns'].map((tab) => (
-                  <button key={tab} onClick={() => setActiveTab(tab as any)} className={`pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === tab ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>
+                  <button 
+                    key={tab} 
+                    onClick={() => setActiveTab(tab as any)} 
+                    className={`pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === tab ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}
+                  >
                     {tab}
                   </button>
                 ))}
               </div>
+              
               <div className="text-sm text-gray-600 leading-relaxed min-h-[150px]">
-                {activeTab === 'Description' && (<p>The Emma Top is very unique... <br/><br/>Fabric: Premium Silk Blend</p>)}
-                {/* ... other tabs ... */}
+                {activeTab === 'Description' && (
+                  <div className="space-y-4">
+                    <p>The Emma Top is very unique, as it features a beautifully gathered, elasticized bodice creating a flattering, textured look. Perfect for warm weather, it offers a lightweight and breathable aesthetic.</p>
+                    <p className="font-medium text-black">Availability: Each collection includes a limited number of On-Hand pieces (maximum of 10).</p>
+                    <div>
+                      <p>Fabric: Premium Silk Blend</p>
+                      <p>Care: Hand wash cold, lay flat to dry.</p>
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'Sizing' && (
+                  <p>Fits true to size. If you are between sizes, we recommend sizing up for a more relaxed fit across the chest. Refer to the size chart above for specific measurements.</p>
+                )}
+                
+                {activeTab === 'Shipping' && (
+                  <div className="space-y-4">
+                    <p>By Lili is based in <strong>Cebu City, Philippines</strong>. We deliver nationwide, with orders within Cebu processed more quickly.</p>
+                    <div>
+                      <p className="font-medium text-black mb-1">Couriers:</p>
+                      <ul className="list-disc ml-5 space-y-1">
+                        <li><strong>Cebu:</strong> Maxim or Lalamove</li>
+                        <li><strong>Outside Cebu:</strong> J&T Express</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'Returns' && (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="font-medium text-black mb-2">Refund & Exchange Policy</p>
+                      <p className="mb-2">Refund requests are only accepted within <strong>1 week of purchase</strong>, and must meet the following conditions:</p>
+                      <ul className="list-disc ml-5 space-y-1">
+                        <li>Item/s were damaged <strong>prior</strong> to delivery or shipping.</li>
+                        <li>The item/s must be <strong>unworn</strong> and <strong>unwashed</strong> (in original condition).</li>
+                        <li>Documentation and proof of the damage is provided by the buyer.</li>
+                      </ul>
+                    </div>
+                    <div className="bg-gray-50 p-3 text-xs border border-gray-100 rounded-sm">
+                      <p className="font-medium text-black mb-1">No Cancellation Policy</p>
+                      <p>Once payment has been processed, orders are final and cannot be cancelled. With or without receiving the item/s, payments remain non-refundable.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -269,6 +373,7 @@ export default function ProductPage() {
         </div>
       </main>
 
+      {/* --- MOUNTED COMPONENTS --- */}
       <AuthModal 
         isOpen={isAuthModalOpen} 
         initialMode={authMode}
@@ -279,7 +384,6 @@ export default function ProductPage() {
         }} 
       />
 
-      {/* 4. MOUNT THE PROFILE DRAWER HERE */}
       <ProfileDrawer 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)} 
@@ -287,15 +391,23 @@ export default function ProductPage() {
       />
 
       {/* --- CART DRAWER OVERLAY --- */}
-      <div className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${isCartOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsCartOpen(false)} />
+      <div 
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${isCartOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} 
+        onClick={() => setIsCartOpen(false)} 
+      />
 
       {/* --- CART DRAWER PANEL --- */}
       <div className={`fixed top-0 right-0 h-full w-[85%] md:w-[450px] bg-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        
+        {/* Cart Header */}
         <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center bg-white">
           <h2 className="text-xl font-semibold tracking-wide">Your Cart ({cartItemCount})</h2>
-          <button onClick={() => setIsCartOpen(false)} className="p-2 -mr-2 hover:bg-gray-100 rounded-full transition-colors"><XMarkIcon className="w-6 h-6 text-gray-500" /></button>
+          <button onClick={() => setIsCartOpen(false)} className="p-2 -mr-2 hover:bg-gray-100 rounded-full transition-colors">
+            <XMarkIcon className="w-6 h-6 text-gray-500" />
+          </button>
         </div>
 
+        {/* Cart Items */}
         <div className="flex-grow overflow-y-auto px-6 py-6 bg-gray-50">
           {cartItems.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4">
@@ -309,7 +421,10 @@ export default function ProductPage() {
                   <div className="w-20 h-24 bg-cover bg-center rounded-sm flex-shrink-0 bg-gray-100" style={{ backgroundImage: `url('${item.image}')` }} />
                   <div className="flex flex-col flex-grow justify-between">
                     <div className="flex justify-between items-start">
-                      <div><h3 className="font-semibold text-sm">{item.name}</h3><p className="text-xs text-gray-500 mt-1">Color: {item.color} | Size: {item.size}</p></div>
+                      <div>
+                        <h3 className="font-semibold text-sm">{item.name}</h3>
+                        <p className="text-xs text-gray-500 mt-1">Color: {item.color} | Size: {item.size}</p>
+                      </div>
                       <p className="font-semibold text-sm">₱{item.price * item.quantity}</p>
                     </div>
                     <div className="flex justify-between items-center mt-3">
@@ -318,7 +433,9 @@ export default function ProductPage() {
                         <div className="flex-1 text-center text-xs font-medium bg-white">{item.quantity}</div>
                         <button onClick={() => updateCartItemQuantity(item.id, 1)} className="w-8 h-full flex justify-center items-center hover:bg-gray-100 bg-white"><PlusIcon className="w-3 h-3" /></button>
                       </div>
-                      <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><TrashIcon className="w-5 h-5" /></button>
+                      <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -327,10 +444,16 @@ export default function ProductPage() {
           )}
         </div>
 
+        {/* Cart Footer */}
         {cartItems.length > 0 && (
           <div className="px-6 py-6 border-t border-gray-200 bg-white">
-            <div className="flex justify-between items-center mb-6"><span className="text-gray-600">Subtotal</span><span className="text-xl font-semibold">₱{cartTotal}</span></div>
-            <button className="w-full bg-[#1A1A1A] text-white py-4 text-sm font-bold tracking-widest hover:bg-black transition-colors">CHECKOUT</button>
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="text-xl font-semibold">₱{cartTotal}</span>
+            </div>
+            <button className="w-full bg-[#1A1A1A] text-white py-4 text-sm font-bold tracking-widest hover:bg-black transition-colors">
+              CHECKOUT
+            </button>
           </div>
         )}
       </div>
