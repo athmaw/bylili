@@ -19,14 +19,14 @@ export default function Sidebar({ isMenuOpen, toggleMenu }) {
         }`}
       >
         <div className="flex justify-end p-4 md:p-6">
-          <button onClick={toggleMenu} className="text-gray-400 hover:text-black transition-colors focus:outline-none">
+          <button onClick={toggleMenu} className="text-[#d4a3b3] hover:text-black transition-colors focus:outline-none">
             <X className="w-6 h-6 md:w-7 md:h-7" />
           </button>
         </div>
-        <nav className="flex flex-col px-8 md:px-10 space-y-6 text-black text-base md:text-lg">
-          <a href="#" className="text-right hover:opacity-70 transition-opacity">About Us</a>
-          <a href="#" className="text-right hover:opacity-70 transition-opacity">Size Guide</a>
-          <a href="#" className="text-right hover:opacity-70 transition-opacity">Contact Us</a>
+        <nav className="flex flex-col px-8 md:px-10 space-y-6 text-black text-sm md:text-base font-medium">
+          <a href="#" className="text-right hover:text-[#d4a3b3] transition-colors">About Us</a>
+          <a href="#" className="text-right hover:text-[#d4a3b3] transition-colors">Size Guide</a>
+          <a href="#" className="text-right hover:text-[#d4a3b3] transition-colors">Contact Us</a>
         </nav>
       </div>
     </div>

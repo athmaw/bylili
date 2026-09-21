@@ -41,13 +41,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans relative overflow-x-hidden">
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
-          .font-logo { font-family: 'Dancing Script', cursive; }
-        `}
-      </style>
-
       <Navbar toggleMenu={toggleMenu} />
       <Sidebar isMenuOpen={isMenuOpen} toggleMenu={toggleMenu} />
       

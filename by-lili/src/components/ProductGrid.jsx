@@ -7,17 +7,17 @@ export default function ProductGrid({ products }) {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
           {products.map((product) => (
             <div key={product.id} className="flex flex-col cursor-pointer group">
-              <div className="relative aspect-[3/4] overflow-hidden mb-3 bg-gray-100">
+              <div className="relative aspect-[3/4] overflow-hidden mb-2 bg-gray-100">
                 <img 
                   src={product.image} 
                   alt={product.name} 
                   className="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
-              <h3 className="font-semibold text-sm md:text-base text-black group-hover:text-[#d4a3b3] transition-colors">
+              <h3 className="font-bold text-[13px] md:text-sm text-black group-hover:text-[#d4a3b3] transition-colors leading-tight">
                 {product.name}
               </h3>
-              <p className="text-sm md:text-base text-gray-700 mt-1">
+              <p className="text-[13px] md:text-sm text-gray-800 mt-0.5">
                 {product.price}
               </p>
             </div>
