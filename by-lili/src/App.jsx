@@ -1,11 +1,10 @@
-import React, { useState } from "react";
-import Navbar from "./components/Navbar";
-import Sidebar from "./components/Sidebar";
-import Hero from "./components/Hero";
-import ProductGrid from "./components/ProductGrid";
-import Footer from "./components/Footer";
+import React, { useState } from 'react';
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import Hero from './components/Hero';
+import ProductGrid from './components/ProductGrid';
+import Footer from './components/Footer';
 
-// You can also move this array to a separate data.js file later!
 const productsData = [
   {
     id: 1,
